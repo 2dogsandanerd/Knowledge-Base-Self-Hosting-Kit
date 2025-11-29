@@ -1,6 +1,6 @@
 # LocalRAG: Self-Hosted RAG System for Code & Documents
 
-A production-ready, Docker-powered RAG system that understands the difference between code and prose. Ingest your codebase and documentation, then query them with full privacy and zero configuration.
+A Docker-powered RAG system that understands the difference between code and prose. Ingest your codebase and documentation, then query them with full privacy and zero configuration.
 
 ![Dashboard Overview](/kit/assets/dashboard.png)
 
