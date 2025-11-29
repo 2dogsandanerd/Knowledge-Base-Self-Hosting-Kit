@@ -1,0 +1,238 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Docker
+*.log
+
+# Virtual environments
+.venv/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.swm
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+.directory
+*.nfs*
+*~
+.Trashes
+.Spotlight-V100
+.fseventsd
+
+# Environment (keep .env.example, ignore actual .env)
+.env
+.env.local
+.env.dev
+.env.prod
+.env.backup
+.env.backup.*
+
+# Data and logs (user-generated content)
+data/
+logs/
+*.log
+*.log.*
+
+# Cache and temporary files
+/cache/
+/tmp/
+/temp/
+*.tmp
+*.temp
+*.cache
+.cache/
+
+# Backup files
+*.bak
+*.bak.*
+*.backup
+*.old
+*.orig
+*.orig.*
+*backup_20*
+
+# Documentation builds
+docs/_build/
+.sphinx/
+
+# Backend specific
+/backend/__pycache__/
+/backend/*.pyc
+/backend/*.pyo
+/backend/*.pyd
+/backend/*.egg-info/
+/backend/dist/
+/backend/build/
+/backend/.pytest_cache/
+/backend/.venv/
+
+# Frontend specific
+/frontend/*.log
+/frontend/node_modules/
+/frontend/dist/
+/frontend/build/
+
+# Nginx
+/nginx/*.log
+
+# Coverage
+coverage/
+*.lcov
+.coverage.*
+.nyc_output/
+
+# System files
+*.[oa]
+*.manifest
+*.su
+*.summary
+
+# ============================================
+# PROJECT CLEANUP - Files NOT needed for GitHub
+# ============================================
+
+# Internal planning/analysis documents
+NEW_README.md
+UPLOAD_READY.md
+WIEDERHERSTELLUNG_ANALYSE.md
+wiederherstellung.md
+CLAUDE.md
+DEPLOYMENT_NOTES.md
+GITHUB_UPLOAD_READY.md
+GITHUB_SETUP_ANLEITUNG.md
+
+# Internal documentation folder
+gitignore/
+
+# Claude AI artifacts
+.claude/
+
+# Temporary asset files (keep only essential screenshots)
+assets/readme_pigs
+assets/coll.png
+assets/quicksearch.png
+
+# ============================================
+# ENTERPRISE FEATURES - Not in Community Edition
+# ============================================
+
+# Admin & Authentication
+/backend/src/api/v1/admin/
+/backend/src/api/v1/auth.py
+/backend/src/services/auth_service.py
+
+# Caching & Redis
+/backend/src/api/v1/cache/
+/backend/src/core/caching/
+/backend/src/core/services/query_cache.py
+
+# Configuration Management
+/backend/src/api/v1/config/
+/backend/src/api/v1/config.py
+/backend/src/services/config_service.py
+
+# Evaluation & Analytics
+/backend/src/api/v1/evaluation/
+/backend/src/api/v1/evaluation.py
+/backend/src/api/v1/analytics.py
+/backend/src/api/v1/analytics_service.py
+/backend/src/core/evaluation/
+/backend/src/services/analytics_service.py
+/backend/src/services/statistics_service.py
+/backend/src/api/v1/statistics.py
+/backend/src/api/v1/statistics_service.py
+
+# Feedback System
+/backend/src/api/v1/feedback/
+
+# Onboarding Wizard
+/backend/src/api/v1/onboarding/
+/backend/src/api/v1/onboarding.py.backup
+/backend/src/services/onboarding_service.py
+
+# Upgrade/Licensing
+/backend/src/api/v1/upgrade/
+/backend/src/api/v1/upgrade.py.backup
+/backend/src/services/version_manager.py
+
+# Email Integration
+/backend/src/api/v1/email.py
+/backend/src/core/email_clients/
+/backend/src/services/loaders/email_loader.py
+
+# Auto-Draft & Learning
+/backend/src/api/v1/auto_draft.py
+/backend/src/api/v1/learning.py
+/backend/src/services/auto_draft_service.py
+/backend/src/services/draft_service.py
+/backend/src/services/learning_manager.py
+
+# Database & Storage (not needed for ChromaDB-only version)
+/backend/src/database/
+/backend/src/storage/
+
+# Observability (Prometheus/Grafana)
+/backend/src/core/observability/
+
+# Experiments
+/backend/src/core/experiments/
+
+# Advanced Services
+/backend/src/services/backup_manager.py
+/backend/src/services/connection_service.py
+/backend/src/services/conversation_manager.py
+/backend/src/services/pandas_agent_service.py
+/backend/src/services/service_manager.py
+/backend/src/services/service_manager_old.py
+
+# Other API endpoints not in Community Edition
+/backend/src/api/v1/dashboard.py
+/backend/src/api/v1/docs.py
+/backend/src/api/v1/services.py
+/backend/src/api/v1/dependencies.py
+/backend/src/api/v1/dependencies.py.backup_20251102
+
+# Old/deprecated RAG files
+/backend/src/api/v1/rag.py.bak
+/backend/src/api/v1/rag/documents_old.py
+/backend/src/api/v1/rag/ingestion_old.py
+/backend/src/api/v1/rag/models_old.py
+/backend/src/core/rag_client_old.py
+
+# JSON config files (domain-specific)
+/backend/src/core/rag_domains.json
+/backend/src/core/postprocessors/student.code-workspace
+
+# Demo/test scripts
+create_demo.py
+1_upload/
