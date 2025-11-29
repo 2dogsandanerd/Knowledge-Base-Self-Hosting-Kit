@@ -133,7 +133,7 @@ You'll get answers with direct code snippets. This is invaluable for:
 
 - ✅ **100% Local & Private** — Your data never leaves your machine
 - ✅ **Zero Config** — `docker compose up` and you're running
-- ✅ **Async Ingestion** — Upload hundreds of files, track progress in real-time
+- ✅ **Batch Ingestion — Process multiple files (sequential processing in Community Edition)
 - ✅ **Code & Doc Profiles** — Different chunking strategies for code vs. prose
 - ✅ **Smart Ingestion** — Auto-detects file types, avoids duplicates
 - ✅ **`.ragignore` Support** — Works like `.gitignore` to exclude files/folders
