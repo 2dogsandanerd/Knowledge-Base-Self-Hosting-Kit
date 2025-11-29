@@ -2,7 +2,7 @@
 
 A production-ready, Docker-powered RAG system that understands the difference between code and prose. Ingest your codebase and documentation, then query them with full privacy and zero configuration.
 
-![Dashboard Overview](assets/dashboard.png)
+![Dashboard Overview](/kit/assets/dashboard.png)
 
 ---
 
@@ -56,7 +56,7 @@ docker compose up -d
 3. Go to the **Quicksearch** tab
 4. Select your collection and ask a question
 
-![Query Interface](assets/query.png)
+![Query Interface](/kit/assets/query.png)
 
 ---
 
@@ -77,7 +77,7 @@ cp -r backend/src data/docs/localrag_code
 - Profile: **Codebase** (uses code-optimized chunking)
 - Click **Start Ingestion**
 
-![Folder Ingestion](assets/folder_ingest.png)
+![Folder Ingestion](/kit/assets/folder_ingest.png)
 
 **Step 3: Query your code**
 - Go to **Quicksearch**
