@@ -35,7 +35,10 @@ chroma_data/
 .claude/
 *.backup
 *.backup_*
+*CLAUDE*
+*QWEN*
 
 # Temporary files
 create_demo.py
 DEPLOYMENT_NOTES.md
+*~
