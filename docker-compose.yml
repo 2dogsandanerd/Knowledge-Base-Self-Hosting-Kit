@@ -1,0 +1,116 @@
+services:
+  # ChromaDB Vector Database
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: knowledge-kit-chromadb
+    expose:
+      - "8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama LLM Server
+  # OPTION 1: Use host Ollama (recommended - shares models with host)
+  # Comment this out and use OPTION 2 if you want isolated container
+  ollama:
+    image: ollama/ollama:latest
+    container_name: knowledge-kit-ollama
+    expose:
+      - "11434"
+    volumes:
+      - ${HOME}/.ollama:/root/.ollama  # Share host Ollama models
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/bin/ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # OPTION 2: Isolated Ollama with dedicated volume (uncomment to use)
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: knowledge-kit-ollama
+  #   expose:
+  #     - "11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   networks:
+  #     - backend
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "/bin/ollama", "list"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 10s
+
+  # nginx Gateway - Single entry point for all traffic
+  gateway:
+    image: nginx:alpine
+    container_name: knowledge-kit-gateway
+    ports:
+      - "${PORT:-8080}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  # FastAPI Backend (internal only)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: knowledge-kit-backend
+    expose:
+      - "8080"
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-llama3.1:8b-instruct-q4_k_m}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ${DOCS_DIR:-./data/docs}:/host_root:ro  # Mount specific docs folder (read-only)
+      - ./backend/src:/app/src:ro  # Mount source code for live reload (development)
+      - docling_cache:/app/cache   # Persistent cache for OCR/Conversion
+    networks:
+      - backend
+    depends_on:
+      chromadb:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  chroma_data:
+  ollama_data:
+  docling_cache:

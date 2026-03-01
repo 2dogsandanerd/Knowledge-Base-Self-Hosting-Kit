@@ -1,0 +1,23 @@
+startCommand:
+  type: stdio
+  config:
+    command: "npx"
+    args:
+      - "-y"
+      - "@knowledge-kit/mcp-server"
+  environmentVariables:
+    KNOWLEDGE_BASE_API_URL:
+      type: string
+      description: "URL of the running Knowledge Base Self-Hosting Kit backend (default: http://localhost:8080)"
+      required: false
+      default: "http://localhost:8080"
+    KNOWLEDGE_BASE_TIMEOUT:
+      type: number
+      description: "Timeout for API requests in milliseconds (default: 120000)"
+      required: false
+      default: 120000
+    LOG_LEVEL:
+      type: string
+      description: "Logging level (DEBUG, INFO, WARN, ERROR) (default: INFO)"
+      required: false
+      default: "INFO"

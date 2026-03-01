@@ -1,0 +1,48 @@
+{
+  "name": "clawrag",
+  "version": "1.0.0",
+  "description": "Official MCP connector for ClawRAG - The self-hosted, Docling-powered knowledge base",
+  "capabilities": {
+    "tools": {
+      "query_knowledge": {
+        "description": "Query the ClawRAG knowledge base with semantic search",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The question or search query to ask the knowledge base"
+            },
+            "collections": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of collections to search (empty = all available collections)"
+            },
+            "k": {
+              "type": "number",
+              "description": "Number of results to return",
+              "default": 5
+            },
+            "use_reranker": {
+              "type": "boolean",
+              "description": "Whether to use the reranker for higher quality results",
+              "default": true
+            }
+          },
+          "required": ["query"]
+        }
+      },
+      "list_collections": {
+        "description": "List all available document collections in ClawRAG",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  },
+  "vendor": "2dogsandanerd",
+  "sourceUrl": "https://github.com/2dogsandanerd/ClawRag"
+}

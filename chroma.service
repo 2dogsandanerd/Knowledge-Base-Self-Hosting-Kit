@@ -1,0 +1,13 @@
+[Unit]
+Description=ChromaDB Server
+After=network.target
+
+[Service]
+Type=simple
+User=sk
+ExecStart=/usr/bin/docker run -p 8000:8000 --name chroma_running chromadb/chroma:0.5.23
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

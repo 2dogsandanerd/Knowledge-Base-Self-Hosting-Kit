@@ -1,0 +1,342 @@
+from sqlalchemy.orm import Session
+from sqlalchemy import func, desc, and_
+from datetime import datetime, timedelta
+from typing import List, Dict, Any
+import json
+import csv
+import io
+
+from src.database.models import LearningPair, User
+
+
+class AnalyticsService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def calculate_engagement_score(self) -> int:
+        """Calculate customer engagement score (0-100)."""
+        try:
+            # Get total learning pairs
+            total_pairs = self.db.query(LearningPair).count()
+            
+            if total_pairs == 0:
+                return 0
+            
+            # Get completed pairs (successful learning)
+            completed_pairs = self.db.query(LearningPair).filter(
+                LearningPair.status == "PAIR_COMPLETED"
+            ).count()
+            
+            # Get recent activity (last 7 days)
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            recent_pairs = self.db.query(LearningPair).filter(
+                LearningPair.created_at >= week_ago
+            ).count()
+            
+            # Calculate base score from completion rate
+            completion_rate = (completed_pairs / total_pairs) * 100 if total_pairs > 0 else 0
+            
+            # Bonus for recent activity
+            activity_bonus = min(recent_pairs * 2, 20)  # Max 20 points for activity
+            
+            # Final score (0-100)
+            score = min(int(completion_rate + activity_bonus), 100)
+            
+            return max(score, 0)
+        except Exception:
+            return 0
+
+    def get_effort_level(self, score: int) -> str:
+        """Get effort level based on engagement score."""
+        if score >= 80:
+            return "Low Effort"
+        elif score >= 60:
+            return "Medium Effort"
+        elif score >= 40:
+            return "High Effort"
+        else:
+            return "Critical"
+
+    def get_total_conversations(self) -> int:
+        """Get total number of conversations."""
+        return self.db.query(LearningPair).count()
+
+    def get_avg_response_time(self) -> float:
+        """Get average response time in hours."""
+        try:
+            # Calculate average time between email and draft creation
+            pairs = self.db.query(LearningPair).filter(
+                LearningPair.status == "PAIR_COMPLETED"
+            ).all()
+            
+            if not pairs:
+                return 0.0
+            
+            total_hours = 0
+            valid_pairs = 0
+            
+            for pair in pairs:
+                if pair.created_at and pair.updated_at:
+                    time_diff = pair.updated_at - pair.created_at
+                    hours = time_diff.total_seconds() / 3600
+                    total_hours += hours
+                    valid_pairs += 1
+            
+            return round(total_hours / valid_pairs, 1) if valid_pairs > 0 else 0.0
+        except Exception:
+            return 0.0
+
+    def get_reply_rate(self) -> float:
+        """Get reply rate percentage."""
+        try:
+            total_pairs = self.db.query(LearningPair).count()
+            if total_pairs == 0:
+                return 0.0
+            
+            completed_pairs = self.db.query(LearningPair).filter(
+                LearningPair.status == "PAIR_COMPLETED"
+            ).count()
+            
+            return round((completed_pairs / total_pairs) * 100, 1)
+        except Exception:
+            return 0.0
+
+    def get_avg_conversation_length(self) -> float:
+        """Get average conversation length (messages per thread)."""
+        try:
+            # This is a simplified calculation
+            # In a real implementation, you'd analyze thread lengths
+            pairs = self.db.query(LearningPair).filter(
+                LearningPair.status == "PAIR_COMPLETED"
+            ).all()
+            
+            if not pairs:
+                return 0.0
+            
+            # Estimate based on draft content length
+            total_length = 0
+            valid_pairs = 0
+            
+            for pair in pairs:
+                if pair.draft_content:
+                    # Estimate messages based on content length
+                    estimated_messages = max(1, len(pair.draft_content.split('\n')) // 3)
+                    total_length += estimated_messages
+                    valid_pairs += 1
+            
+            return round(total_length / valid_pairs, 1) if valid_pairs > 0 else 0.0
+        except Exception:
+            return 0.0
+
+    def get_daily_learning_counts(self, days: int = 30) -> List[Dict[str, Any]]:
+        """Get daily learning pair counts for the last N days."""
+        try:
+            end_date = datetime.utcnow().date()
+            start_date = end_date - timedelta(days=days)
+            
+            # Query daily counts
+            daily_counts = self.db.query(
+                func.date(LearningPair.created_at).label('date'),
+                func.count(LearningPair.id).label('count')
+            ).filter(
+                and_(
+                    func.date(LearningPair.created_at) >= start_date,
+                    func.date(LearningPair.created_at) <= end_date
+                )
+            ).group_by(
+                func.date(LearningPair.created_at)
+            ).order_by('date').all()
+            
+            # Create a complete date range
+            result = []
+            current_date = start_date
+            
+            while current_date <= end_date:
+                # Find count for this date
+                count = 0
+                for daily_count in daily_counts:
+                    if daily_count.date == current_date:
+                        count = daily_count.count
+                        break
+                
+                result.append({
+                    "date": current_date.strftime("%Y-%m-%d"),
+                    "count": count
+                })
+                current_date += timedelta(days=1)
+            
+            return result
+        except Exception:
+            return []
+
+    def calculate_trend(self, data: List[Dict[str, Any]]) -> Dict[str, float]:
+        """Calculate linear regression trend."""
+        try:
+            if len(data) < 2:
+                return {"slope": 0, "r_squared": 0}
+            
+            # Simple linear regression
+            n = len(data)
+            x_values = list(range(n))
+            y_values = [d["count"] for d in data]
+            
+            # Calculate means
+            x_mean = sum(x_values) / n
+            y_mean = sum(y_values) / n
+            
+            # Calculate slope and intercept
+            numerator = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_values, y_values))
+            denominator = sum((x - x_mean) ** 2 for x in x_values)
+            
+            if denominator == 0:
+                return {"slope": 0, "r_squared": 0}
+            
+            slope = numerator / denominator
+            intercept = y_mean - slope * x_mean
+            
+            # Calculate R-squared
+            y_pred = [slope * x + intercept for x in x_values]
+            ss_res = sum((y - pred) ** 2 for y, pred in zip(y_values, y_pred))
+            ss_tot = sum((y - y_mean) ** 2 for y in y_values)
+            
+            r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+            
+            return {
+                "slope": round(slope, 3),
+                "r_squared": round(r_squared, 3)
+            }
+        except Exception:
+            return {"slope": 0, "r_squared": 0}
+
+    def get_conversation_by_status(self) -> Dict[str, int]:
+        """Get conversation counts by status."""
+        try:
+            status_counts = self.db.query(
+                LearningPair.status,
+                func.count(LearningPair.id).label('count')
+            ).group_by(LearningPair.status).all()
+            
+            result = {}
+            for status, count in status_counts:
+                result[status] = count
+            
+            return result
+        except Exception:
+            return {}
+
+    def generate_recommendations(self) -> List[Dict[str, str]]:
+        """Generate AI-powered learning recommendations."""
+        try:
+            recommendations = []
+            
+            # Get current metrics
+            engagement_score = self.calculate_engagement_score()
+            total_conversations = self.get_total_conversations()
+            reply_rate = self.get_reply_rate()
+            avg_response_time = self.get_avg_response_time()
+            
+            # Generate recommendations based on metrics
+            if engagement_score < 40:
+                recommendations.append({
+                    "type": "focus",
+                    "message": "🎯 Focus on improving response quality. Your engagement score is low - consider reviewing draft templates."
+                })
+            elif engagement_score >= 80:
+                recommendations.append({
+                    "type": "success",
+                    "message": "✅ Good job on maintaining high engagement! Keep up the excellent work."
+                })
+            
+            if reply_rate < 50:
+                recommendations.append({
+                    "type": "warning",
+                    "message": "⚠️ Warning: Low reply rate detected. Consider improving email personalization."
+                })
+            
+            if avg_response_time > 24:
+                recommendations.append({
+                    "type": "focus",
+                    "message": "🎯 Focus on reducing response time. Consider automating common responses."
+                })
+            
+            if total_conversations < 10:
+                recommendations.append({
+                    "type": "info",
+                    "message": "ℹ️ Build more conversation history to improve AI recommendations."
+                })
+            
+            return recommendations
+        except Exception:
+            return []
+
+    def export_to_csv(self) -> str:
+        """Export learning data to CSV format."""
+        try:
+            pairs = self.db.query(LearningPair).all()
+            
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Write header
+            writer.writerow([
+                'ID', 'Thread ID', 'Status', 'Created At', 'Updated At',
+                'Draft Content', 'User ID'
+            ])
+            
+            # Write data
+            for pair in pairs:
+                writer.writerow([
+                    pair.id,
+                    pair.thread_id,
+                    pair.status,
+                    pair.created_at.isoformat() if pair.created_at else '',
+                    pair.updated_at.isoformat() if pair.updated_at else '',
+                    pair.draft_content or '',
+                    pair.user_id
+                ])
+            
+            return output.getvalue()
+        except Exception:
+            return ""
+
+    def export_to_json(self) -> str:
+        """Export learning data to JSON format."""
+        try:
+            pairs = self.db.query(LearningPair).all()
+            
+            data = {
+                "export_date": datetime.utcnow().isoformat(),
+                "total_pairs": len(pairs),
+                "pairs": []
+            }
+            
+            for pair in pairs:
+                data["pairs"].append({
+                    "id": pair.id,
+                    "thread_id": pair.thread_id,
+                    "status": pair.status,
+                    "created_at": pair.created_at.isoformat() if pair.created_at else None,
+                    "updated_at": pair.updated_at.isoformat() if pair.updated_at else None,
+                    "draft_content": pair.draft_content,
+                    "user_id": pair.user_id
+                })
+            
+            return json.dumps(data, indent=2)
+        except Exception:
+            return "{}"
+
+    def reset_all_data(self) -> int:
+        """Reset all learning data (DANGEROUS)."""
+        try:
+            # Count before deletion
+            count = self.db.query(LearningPair).count()
+            
+            # Delete all learning pairs
+            self.db.query(LearningPair).delete()
+            self.db.commit()
+            
+            return count
+        except Exception:
+            self.db.rollback()
+            return 0
+

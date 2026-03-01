@@ -1,0 +1,94 @@
+{
+    "version": "1.0",
+    "rules": [
+        {
+            "condition": {
+                "category": "legal_documents",
+                "confidence": {
+                    ">=": 0.7
+                }
+            },
+            "action": {
+                "target_collection": "contracts",
+                "chunk_size": 1024,
+                "chunk_overlap": 256,
+                "requires_validation": true,
+                "preprocessing_steps": [
+                    "extract_clauses",
+                    "identify_parties"
+                ],
+                "postprocessing_steps": [
+                    "validate_clauses"
+                ]
+            }
+        },
+        {
+            "condition": {
+                "category": "financial_reports",
+                "confidence": {
+                    ">=": 0.7
+                }
+            },
+            "action": {
+                "target_collection": "finance",
+                "chunk_size": 512,
+                "chunk_overlap": 128,
+                "requires_validation": true,
+                "preprocessing_steps": [
+                    "extract_amounts",
+                    "identify_vendors"
+                ],
+                "postprocessing_steps": [
+                    "validate_amounts"
+                ]
+            }
+        },
+        {
+            "condition": {
+                "category": "technical_manuals",
+                "confidence": {
+                    ">=": 0.7
+                }
+            },
+            "action": {
+                "target_collection": "technical_docs",
+                "chunk_size": 512,
+                "chunk_overlap": 128,
+                "requires_validation": false,
+                "preprocessing_steps": [
+                    "extract_procedures"
+                ],
+                "postprocessing_steps": []
+            }
+        },
+        {
+            "condition": {
+                "category": "source_code",
+                "confidence": {
+                    ">=": 0.9
+                }
+            },
+            "action": {
+                "target_collection": "code",
+                "chunk_size": 256,
+                "chunk_overlap": 64,
+                "requires_validation": false,
+                "preprocessing_steps": [
+                    "preserve_syntax",
+                    "identify_functions"
+                ],
+                "postprocessing_steps": [
+                    "validate_syntax"
+                ]
+            }
+        }
+    ],
+    "defaults": {
+        "target_collection": "general_docs",
+        "chunk_size": 512,
+        "chunk_overlap": 128,
+        "requires_validation": false,
+        "preprocessing_steps": [],
+        "postprocessing_steps": []
+    }
+}

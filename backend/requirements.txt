@@ -1,0 +1,50 @@
+# Core dependencies
+fastapi
+uvicorn[standard]
+sqlalchemy
+aiosqlite
+python-dotenv
+pydantic
+loguru
+
+# Document processing
+# IMPORTANT: Install CPU-only PyTorch FIRST to avoid 4GB+ CUDA downloads
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+
+docling==2.13.0
+pikepdf
+python-magic
+python-multipart
+html2text
+requests
+plotly
+
+# Vector DB
+chromadb==0.5.23
+
+# LLM & Retrieval
+llama-index==0.12.9
+llama-index-embeddings-ollama
+llama-index-vector-stores-chroma
+llama-index-llms-ollama
+
+# Retrieval enhancements
+rank_bm25
+
+# Extraction & metadata
+langdetect
+pillow
+exifread
+textstat
+
+# Caching / performance
+numpy
+
+# Evaluation
+ragas
+datasets
+
+# Documentation
+markdown

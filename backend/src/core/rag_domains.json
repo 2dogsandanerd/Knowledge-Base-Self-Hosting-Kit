@@ -1,0 +1,36 @@
+{
+  "domains": {
+    "customer_service": {
+      "description": "Anfragen von Kunden zu Produkten, Bestellungen und allgemeinem Support.",
+      "collections": [
+        "produkte",
+        "kunden",
+        "support-faq",
+        "bestellungen"
+      ]
+    },
+    "billing": {
+      "description": "Alles rund um Rechnungen und Zahlungen.",
+      "collections": [
+        "rechnungen",
+        "zahlungs-historie"
+      ]
+    },
+    "technical_support": {
+      "description": "Technische Anfragen zu APIs und Code.",
+      "collections": [
+        "api_doku_v1",
+        "api_doku_v2",
+        "code-snippets"
+      ]
+    },
+    "internal_hr": {
+      "description": "Interne Anfragen der Personalabteilung.",
+      "collections": [
+        "mitarbeiter-handbuch",
+        "urlaubsanträge",
+        "interne_richtlinien"
+      ]
+    }
+  }
+}

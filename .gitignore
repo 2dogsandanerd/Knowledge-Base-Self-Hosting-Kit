@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+node_modules/
+ENV/
+*.egg-info/
+dist/
+build/
+planung/
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+
+# Data & Storage
+data/
+chroma_data/
+
+# Development
+.claude/
+*.backup
+*.backup_*
+
+# Temporary files
+create_demo.py
+DEPLOYMENT_NOTES.md
+
+# OpenClaw/ClawBot related files
+openclaw_skill/
+*.clawbot
+clawbot_*.py
+clawbot_*.txt
+clawbot_*.json
+clawbot_*.yaml
+clawbot_*.yml

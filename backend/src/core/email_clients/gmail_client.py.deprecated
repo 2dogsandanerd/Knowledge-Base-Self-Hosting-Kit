@@ -1,0 +1,540 @@
+"""Gmail API client for reading emails and creating drafts."""
+
+import os
+import base64
+import json
+import glob
+from typing import List, Dict, Optional, Any
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+from .base_client import AbstractEmailClient
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+import html2text
+from loguru import logger
+
+# Gmail API scopes
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.compose',
+    'https://www.googleapis.com/auth/gmail.modify'
+]
+
+class GmailClient(AbstractEmailClient):
+    """Gmail API client for email operations, designed for web-based OAuth flow."""
+    
+    def __init__(self, session_state: Dict[str, Any], config: Dict[str, Any] = None):
+        """
+        Initializes the GmailClient.
+        Args:
+            session_state: The Streamlit session state dictionary.
+            config: The application configuration dictionary.
+        """
+        self._session_state = session_state
+        self.config = config or {}
+        self.token_path = 'token.json'
+        self.credentials_path = self._find_credentials_file()
+        self.service = None
+        self.gmail_label = self.config.get('GMAIL_LABEL', os.getenv('GMAIL_LABEL', 'ki-bearbeitet'))
+
+        if self.is_authenticated():
+            self.initialize_service()
+
+    def _find_credentials_file(self) -> Optional[str]:
+        """Finds the Google client secret file in the root directory."""
+        if os.path.exists('credentials.json'):
+            logger.info("Found credentials file: 'credentials.json'")
+            return 'credentials.json'
+        
+        found_files = glob.glob('client_secret_*.json')
+        if found_files:
+            logger.info(f"Found credentials file: {found_files[0]}")
+            return found_files[0]
+        
+        logger.warning("No credentials file found ('credentials.json' or 'client_secret_*.json').")
+        return None
+
+    def is_authenticated(self) -> bool:
+        """Checks for a valid token.json and refreshes it if necessary."""
+        if not os.path.exists(self.token_path):
+            return False
+        
+        try:
+            creds = Credentials.from_authorized_user_file(self.token_path, SCOPES)
+            if creds and creds.valid:
+                return True
+            if creds and creds.expired and creds.refresh_token:
+                logger.info("Credentials expired, attempting refresh...")
+                creds.refresh(Request())
+                with open(self.token_path, 'w') as token:
+                    token.write(creds.to_json())
+                logger.info("Credentials refreshed successfully.")
+                return True
+        except Exception as e:
+            logger.error(f"Error checking or refreshing credentials: {e}")
+            return False
+        return False
+
+    def initialize_service(self):
+        """Initializes the Gmail API service with existing credentials."""
+        if not self.is_authenticated():
+            logger.error("Cannot initialize service: not authenticated.")
+            return
+        creds = Credentials.from_authorized_user_file(self.token_path, SCOPES)
+        self.service = build('gmail', 'v1', credentials=creds)
+        logger.info("Gmail service initialized successfully.")
+
+    def get_auth_url(self) -> Optional[str]:
+        """Generates and returns the Google Authentication URL."""
+        if not self.credentials_path:
+            st_error_msg = "Google Credentials-Datei nicht gefunden. Bitte stellen Sie sicher, dass 'credentials.json' oder 'client_secret_....json' im Hauptverzeichnis liegt."
+            logger.error(st_error_msg)
+            self._session_state['gmail_auth_error'] = st_error_msg
+            return None
+        
+        try:
+            redirect_uri = self.config.get('GMAIL_REDIRECT_URI', os.getenv('GMAIL_REDIRECT_URI', 'http://localhost:8501/oauth2callback'))
+            flow = Flow.from_client_secrets_file(
+                self.credentials_path,
+                scopes=SCOPES,
+                redirect_uri=redirect_uri
+            )
+            self._session_state['oauth_flow'] = flow
+            auth_url, _ = flow.authorization_url(access_type='offline', prompt='consent')
+            return auth_url
+        except Exception as e:
+            logger.error(f"Error creating auth URL: {e}")
+            self._session_state['gmail_auth_error'] = f"Fehler beim Erstellen der Auth-URL: {e}"
+            return None
+
+    def handle_auth_callback(self, code: str) -> bool:
+        """Handles the OAuth callback from Google."""
+        flow = self._session_state.get('oauth_flow')
+        if not flow:
+            logger.error("OAuth flow not found in session state.")
+            # Try to recreate the flow if credentials are available
+            if self.credentials_path:
+                try:
+                    redirect_uri = self.config.get('GMAIL_REDIRECT_URI', os.getenv('GMAIL_REDIRECT_URI', 'http://localhost:8501/oauth2callback'))
+                    flow = Flow.from_client_secrets_file(
+                        self.credentials_path,
+                        scopes=SCOPES,
+                        redirect_uri=redirect_uri
+                    )
+                    logger.info("Recreated OAuth flow from credentials")
+                except Exception as e:
+                    logger.error(f"Failed to recreate OAuth flow: {e}")
+                    return False
+            else:
+                return False
+        
+        try:
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+            with open(self.token_path, 'w') as token:
+                token.write(creds.to_json())
+            self.initialize_service()
+            if 'oauth_flow' in self._session_state:
+                del self._session_state['oauth_flow']
+            return True
+        except Exception as e:
+            logger.error(f"Failed to fetch token: {e}")
+            return False
+
+    def get_unread_emails(self, max_results: int = 10) -> List[Dict]:
+        """Get unread emails from Gmail."""
+        if not self.service:
+            logger.warning("Gmail service not initialized. Please authenticate.")
+            return []
+        try:
+            results = self.service.users().messages().list(userId='me', q='is:unread', maxResults=max_results).execute()
+            messages = results.get('messages', [])
+            emails = []
+            for msg in messages:
+                email_details = self.get_email_details(msg['id'])
+                if email_details:
+                    emails.append(email_details)
+            logger.info(f"Retrieved {len(emails)} unread emails")
+            return emails
+        except HttpError as error:
+            logger.error(f"Error retrieving emails: {error}")
+            return []
+
+    def get_email_details(self, message_id: str) -> Optional[Dict]:
+        """Get detailed email information."""
+        if not self.service: return None
+        try:
+            message = self.service.users().messages().get(userId='me', id=message_id, format='full').execute()
+            headers = message['payload'].get('headers', [])
+            header_dict = {h['name']: h['value'] for h in headers}
+            body = self._extract_body(message['payload'])
+            thread_id = message['threadId']
+            thread_history = self.get_thread_history(thread_id)
+            return {
+                'id': message_id, 'thread_id': thread_id, 'subject': header_dict.get('Subject', ''),
+                'sender': header_dict.get('From', ''), 'date': header_dict.get('Date', ''),
+                'body': body, 'snippet': message.get('snippet', ''), 'thread_history': thread_history
+            }
+        except HttpError as error:
+            logger.error(f"Error getting email details for {message_id}: {error}")
+            return None
+
+    def _extract_body(self, payload: Dict) -> str:
+        """Extract email body from payload."""
+        body = ""
+        if 'parts' in payload:
+            for part in payload['parts']:
+                if part['mimeType'] == 'text/plain':
+                    data = part['body'].get('data', '')
+                    body = base64.urlsafe_b64decode(data).decode('utf-8', 'ignore')
+                    break
+                elif part['mimeType'] == 'text/html':
+                    data = part['body'].get('data', '')
+                    html_body = base64.urlsafe_b64decode(data).decode('utf-8', 'ignore')
+                    h = html2text.HTML2Text()
+                    h.ignore_links = True
+                    body = h.handle(html_body)
+        elif 'data' in payload.get('body', {}):
+            data = payload['body']['data']
+            if payload['mimeType'] == 'text/plain':
+                body = base64.urlsafe_b64decode(data).decode('utf-8', 'ignore')
+            elif payload['mimeType'] == 'text/html':
+                html_body = base64.urlsafe_b64decode(data).decode('utf-8', 'ignore')
+                h = html2text.HTML2Text()
+                h.ignore_links = True
+                body = h.handle(html_body)
+        return body.strip()
+
+    def create_draft(self, to: str, subject: str, body: str, thread_id: Optional[str] = None, in_reply_to: Optional[str] = None) -> Optional[str]:
+        """Create a draft email with proper threading."""
+        if not self.service:
+            logger.warning("Gmail service not initialized. Please authenticate.")
+            return None
+        try:
+            message = MIMEMultipart()
+            message['to'] = to
+            message['subject'] = subject
+            if in_reply_to:
+                message['In-Reply-To'] = in_reply_to
+                message['References'] = in_reply_to
+            message.attach(MIMEText(body, 'plain'))
+            draft_body = {'message': {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}}
+            if thread_id:
+                draft_body['message']['threadId'] = thread_id
+            draft = self.service.users().drafts().create(userId='me', body=draft_body).execute()
+            logger.info(f"Draft created with ID: {draft['id']} (Thread: {thread_id})")
+            return draft['id']
+        except HttpError as error:
+            logger.error(f"Error creating draft: {error}")
+            return None
+
+    def get_thread_history(self, thread_id: str, max_messages: int = 10) -> List[Dict]:
+        """Get full thread history for context."""
+        if not self.service:
+            logger.warning("Gmail service not initialized. Please authenticate.")
+            return []
+        
+        # Validate thread_id before making API call
+        if not thread_id or thread_id == 'unknown' or len(thread_id) < 10:
+            logger.warning(f"Invalid thread_id provided: {thread_id}")
+            return []
+            
+        try:
+            thread = self.service.users().threads().get(userId='me', id=thread_id, format='full').execute()
+            history = []
+            messages = thread.get('messages', [])
+            for message in messages[-max_messages:]:
+                headers = message['payload'].get('headers', [])
+                header_dict = {h['name']: h['value'] for h in headers}
+                body = self._extract_body(message['payload'])
+                history.append({
+                    'id': message['id'], 'sender': header_dict.get('From', ''), 'date': header_dict.get('Date', ''),
+                    'subject': header_dict.get('Subject', ''), 'body': body[:1000],
+                })
+            logger.info(f"Retrieved thread history with {len(history)} messages")
+            return history
+        except HttpError as error:
+            logger.error(f"Error retrieving thread history: {error}")
+            return []
+
+    def move_to_label(self, message_id: str, label: str = None) -> bool:
+        """Move email to specified label after processing."""
+        if not self.service:
+            logger.warning("Gmail service not initialized. Please authenticate.")
+            return False
+        try:
+            # Use provided label or fall back to configured label
+            target_label = label or self.gmail_label
+            label_id = self._get_or_create_label(target_label)
+            if not label_id: return False
+            self.service.users().messages().modify(userId='me', id=message_id, body={'addLabelIds': [label_id], 'removeLabelIds': ['INBOX']}).execute()
+            logger.info(f"Email {message_id} moved to label {target_label}")
+            return True
+        except HttpError as error:
+            logger.error(f"Error moving email to label: {error}")
+            return False
+    
+    def add_label_to_email(self, message_id: str, label: str) -> bool:
+        """Add label to email without removing from inbox."""
+        if not self.service:
+            logger.warning("Gmail service not initialized. Please authenticate.")
+            return False
+        try:
+            label_id = self._get_or_create_label(label)
+            if not label_id: return False
+            self.service.users().messages().modify(userId='me', id=message_id, body={'addLabelIds': [label_id]}).execute()
+            logger.info(f"Label {label} added to email {message_id}")
+            return True
+        except HttpError as error:
+            logger.error(f"Error adding label to email: {error}")
+            return False
+    
+    def mark_email_as_unread(self, message_id: str) -> bool:
+        """Mark email as unread."""
+        if not self.service:
+            logger.warning("Gmail service not initialized. Please authenticate.")
+            return False
+        try:
+            self.service.users().messages().modify(userId='me', id=message_id, body={'removeLabelIds': ['READ']}).execute()
+            logger.info(f"Email {message_id} marked as unread")
+            return True
+        except HttpError as error:
+            logger.error(f"Error marking email as unread: {error}")
+            return False
+
+    def _get_or_create_label(self, label_name: str) -> Optional[str]:
+        """Get existing label ID or create new label."""
+        if not self.service: return None
+        try:
+            labels = self.service.users().labels().list(userId='me').execute().get('labels', [])
+            for label in labels:
+                if label['name'] == label_name:
+                    return label['id']
+            label_object = {'name': label_name, 'labelListVisibility': 'labelShow', 'messageListVisibility': 'show'}
+            created_label = self.service.users().labels().create(userId='me', body=label_object).execute()
+            logger.info(f"Created new label: {label_name}")
+            return created_label['id']
+        except HttpError as error:
+            logger.error(f"Error with label operations: {error}")
+            return None
+
+    def check_draft_status(self, draft_id: str) -> str:
+        """Check if draft still exists (not sent/deleted)."""
+        if not self.service:
+            logger.warning("Gmail service not initialized.")
+            return "unknown"
+        try:
+            self.service.users().drafts().get(userId='me', id=draft_id).execute()
+            return "exists"
+        except HttpError as error:
+            if error.resp.status == 404:
+                return "deleted"  # Draft was deleted or sent
+            else:
+                logger.error(f"Error checking draft status: {error}")
+                return "unknown"
+
+    def get_emails(self, max_count: int = 20) -> List[Dict[str, Any]]:
+        """Ruft eine Liste von E-Mails aus dem primären Posteingang ab."""
+        if not self.service:
+            logger.warning("Gmail service not initialized.")
+            return []
+        try:
+            # Verwende get_unread_emails als Basis und erweitere um alle E-Mails
+            results = self.service.users().messages().list(userId='me', maxResults=max_count).execute()
+            messages = results.get('messages', [])
+            emails = []
+            for msg in messages:
+                email_details = self.get_email_details(msg['id'])
+                if email_details:
+                    emails.append(email_details)
+            logger.info(f"Retrieved {len(emails)} emails")
+            return emails
+        except HttpError as error:
+            logger.error(f"Error retrieving emails: {error}")
+            return []
+
+    def list_folders(self) -> List[str]:
+        """Lists all labels in the user's Gmail account."""
+        if not self.service:
+            logger.warning("Gmail service not initialized.")
+            return []
+        try:
+            results = self.service.users().labels().list(userId='me').execute()
+            labels = results.get('labels', [])
+            return [label['name'] for label in labels]
+        except HttpError as error:
+            logger.error(f"Error listing labels: {error}")
+            return []
+
+        def get_user_email(self) -> Optional[str]:
+
+            """Returns the authenticated Gmail user's email address."""
+
+            if not self.service:
+
+                logger.warning("Gmail service not initialized.")
+
+                return None
+
+    
+
+            try:
+
+                profile = self.service.users().getProfile(userId='me').execute()
+
+                return profile.get('emailAddress')
+
+            except Exception as e:
+
+                logger.error(f"Failed to get user email: {e}")
+
+                return None
+
+    
+
+        def clear_inbox(self) -> Dict[str, Any]:
+
+            """Marks all unread emails in the inbox as read."""
+
+            if not self.service:
+
+                logger.warning("Gmail service not initialized.")
+
+                return {"status": "error", "message": "Service not initialized."}
+
+    
+
+            emails_marked_read = 0
+
+            try:
+
+                # Find all unread messages in the INBOX
+
+                results = self.service.users().messages().list(userId='me', q='is:unread in:inbox').execute()
+
+                messages = results.get('messages', [])
+
+    
+
+                if not messages:
+
+                    logger.info("clear_inbox: No unread emails found.")
+
+                    return {"status": "success", "count": 0, "message": "No unread emails to clear."}
+
+    
+
+                # Batch modify messages to remove 'UNREAD' label
+
+                # Google's API is more efficient with batching, but for simplicity here we do it one by one.
+
+                # For larger scale, consider a batch request.
+
+                for msg in messages:
+
+                    self.service.users().messages().modify(
+
+                        userId='me',
+
+                        id=msg['id'],
+
+                        body={'removeLabelIds': ['UNREAD']}
+
+                    ).execute()
+
+                    emails_marked_read += 1
+
+                
+
+                logger.info(f"Successfully marked {emails_marked_read} emails as read.")
+
+                return {"status": "success", "count": emails_marked_read, "message": f"Cleared {emails_marked_read} emails."}
+
+    
+
+            except HttpError as error:
+
+                logger.error(f"Error clearing inbox: {error}")
+
+                return {"status": "error", "message": str(error)}
+
+            except Exception as e:
+
+                logger.error(f"An unexpected error occurred while clearing inbox: {e}")
+
+                return {"status": "error", "message": "An unexpected error occurred."}
+
+    
+
+    def remove_label_from_email(self, message_id: str, label_name: str) -> bool:
+        """
+        Remove a label from a specific email.
+
+        Args:
+            message_id: Gmail message ID
+            label_name: Label name to remove (e.g., "AI_DRAFT")
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.service:
+            logger.warning("Gmail service not initialized.")
+            return False
+
+        try:
+            # Get label ID
+            label_id = self._get_or_create_label(label_name)
+
+            # Remove label from message
+            self.service.users().messages().modify(
+                userId='me',
+                id=message_id,
+                body={'removeLabelIds': [label_id]}
+            ).execute()
+
+            logger.info(f"Removed label '{label_name}' from message {message_id}")
+            return True
+
+        except HttpError as error:
+            logger.error(f"Error removing label '{label_name}' from message {message_id}: {error}")
+            return False
+
+    def get_emails_from_folder(self, folder_name: str, max_results: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get unread emails from a specific Gmail label.
+
+        Args:
+            folder_name: Gmail label name (e.g., "AI_DRAFT")
+            max_results: Maximum number of emails to fetch
+
+        Returns:
+            List of email dicts
+        """
+        try:
+            # Get or create label
+            label_id = self._get_or_create_label(folder_name)
+
+            # Fetch emails with this label
+            results = self.service.users().messages().list(
+                userId="me",
+                labelIds=[label_id, "UNREAD"],
+                maxResults=max_results
+            ).execute()
+
+            messages = results.get("messages", [])
+            emails = []
+            for msg in messages:
+                email_details = self.get_email_details(msg["id"])
+                if email_details:
+                    emails.append(email_details)
+            return emails
+
+        except Exception as e:
+            logger.error(f"Error fetching from folder {folder_name}: {e}")
+            return []
+

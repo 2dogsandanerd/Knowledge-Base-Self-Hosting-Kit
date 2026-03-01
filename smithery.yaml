@@ -1,0 +1,34 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: http
+  configSchema:
+    type: object
+    properties:
+      KNOWLEDGE_BASE_API_URL:
+        type: string
+        description: "URL of the running Knowledge Base Self-Hosting Kit backend"
+        default: "http://localhost:8080"
+      KNOWLEDGE_BASE_TIMEOUT:
+        type: number
+        description: "Timeout for API requests in milliseconds"
+        default: 120000
+      LOG_LEVEL:
+        type: string
+        description: "Logging level (DEBUG, INFO, WARN, ERROR)"
+        default: "INFO"
+      PORT:
+        type: number
+        description: "HTTP server port"
+        default: 3000
+  commandFunction: |
+    (config) => ({
+      command: 'npx',
+      args: ['-y', '@knowledge-kit/mcp-server@latest', 'http'],
+      env: {
+        KNOWLEDGE_BASE_API_URL: config.KNOWLEDGE_BASE_API_URL || 'http://localhost:8080',
+        KNOWLEDGE_BASE_TIMEOUT: config.KNOWLEDGE_BASE_TIMEOUT?.toString() || '120000',
+        LOG_LEVEL: config.LOG_LEVEL || 'INFO',
+        PORT: config.PORT?.toString() || '3000'
+      }
+    })

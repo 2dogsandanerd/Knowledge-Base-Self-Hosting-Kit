@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base Self-Hosting Kit | Agent Memory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #252525;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #667eea;
+            --accent-hover: #764ba2;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --border: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            padding: 30px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .collection-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .collection-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: border-color 0.2s;
+        }
+
+        .collection-item:hover {
+            border-color: var(--accent);
+        }
+
+        .collection-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .collection-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .collection-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: var(--error);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .code-block {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .code-block pre {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+
+        .alert-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .query-results {
+            margin-top: 20px;
+        }
+
+        .result-item {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .result-content {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
+            transition: width 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+            margin-top: 60px;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .log-container {
+            background: #0d1117;
+            color: #d1d5db;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 11px;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            display: flex;
+            gap: 8px;
+            border-left: 2px solid transparent;
+            padding-left: 6px;
+        }
+
+        .log-timestamp {
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .log-level-SUCCESS {
+            color: #10b981;
+        }
+
+        .log-level-INFO {
+            color: #3b82f6;
+        }
+
+        .log-level-WARNING {
+            color: #f59e0b;
+        }
+
+        .log-level-ERROR {
+            color: #ef4444;
+        }
+
+        .log-message {
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 Knowledge Base Self-Hosting Kit</h1>
+            <p class="subtitle">Community edition • Secure RAG memory powered by ChromaDB, Docling, and MCP</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="tab" onclick="switchTab('query')">Query</button>
+            <button class="tab" onclick="switchTab('search')">Search</button>
+            <button class="tab" onclick="switchTab('collections')">Collections</button>
+            <button class="tab" onclick="switchTab('upload')">Upload</button>
+            <button class="tab" onclick="switchTab('ingest')">Folder Ingestion</button>
+            <button class="tab" onclick="switchTab('mcp')">Agent Config</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-collections">-</div>
+                    <div class="stat-label">Collections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-documents">-</div>
+                    <div class="stat-label">Total Documents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-status">
+                        <span class="spinner"></span>
+                    </div>
+                    <div class="stat-label">System Status</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Live System Feed</div>
+                <div id="system-logs" class="log-container">
+                    <div style="text-align: center; padding: 20px; color: #6b7280;">
+                        Waiting for system activity...
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Quick Actions</div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button onclick="switchTab('query')">🔍 Query Knowledge Base</button>
+                    <button onclick="switchTab('upload')" class="secondary">📤 Upload Documents</button>
+                    <button onclick="switchTab('ingest')" class="secondary">📁 Ingest Folder</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Query Tab -->
+        <div id="query" class="tab-content">
+            <div class="card">
+                <div class="card-title">Query Knowledge Base</div>
+                <div id="query-alert"></div>
+                <div class="form-group">
+                    <label>Select Collection</label>
+                    <select id="query-collection">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Your Question</label>
+                    <textarea id="query-input" placeholder="What would you like to know?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Number of Results (k)</label>
+                    <input type="number" id="query-k" value="5" min="1" max="20">
+                </div>
+                <button onclick="executeQuery()">Search</button>
+            </div>
+
+            <div id="query-results" class="query-results"></div>
+        </div>
+
+        <!-- Search Tab (Instant Document Retrieval - No LLM) -->
+        <div id="search" class="tab-content">
+            <div class="card">
+                <div class="card-title">Quick Search (Instant Results)</div>
+                <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 15px;">
+                    Fast document retrieval without LLM generation - perfect for finding specific information quickly!
+                </p>
+                <div id="search-alert"></div>
+                <div class="form-group">
+                    <label>Select Collection</label>
+                    <select id="search-collection">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Search Query</label>
+                    <input type="text" id="search-input" placeholder="Enter keywords or phrases...">
+                </div>
+                <div class="form-group">
+                    <label>Number of Results (k)</label>
+                    <input type="number" id="search-k" value="5" min="1" max="20">
+                </div>
+                <button onclick="executeSearch()">Search Documents</button>
+            </div>
+
+            <div id="search-results" class="query-results"></div>
+        </div>
+
+        <!-- Collections Tab -->
+        <div id="collections" class="tab-content">
+            <div class="card">
+                <div class="card-title">Create New Collection</div>
+                <div id="collection-alert"></div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Collection Name</label>
+                        <input type="text" id="new-collection-name" placeholder="my_knowledge_base">
+                    </div>
+                    <div class="form-group">
+                        <label>Embedding Model</label>
+                        <select id="new-collection-embedding">
+                            <option value="nomic-embed-text">nomic-embed-text (Ollama)</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="createCollection()">Create Collection</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Existing Collections</div>
+                <div id="collections-list"></div>
+            </div>
+        </div>
+
+        <!-- Upload Tab -->
+        <div id="upload" class="tab-content">
+            <div class="card">
+                <div class="card-title">Upload Documents</div>
+                <div id="upload-alert"></div>
+                <div class="form-group">
+                    <label>Select Collection</label>
+                    <select id="upload-collection">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Select Files (PDF, TXT, MD)</label>
+                    <input type="file" id="upload-files" multiple accept=".pdf,.txt,.md">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Chunk Size</label>
+                        <input type="number" id="upload-chunk-size" value="512">
+                    </div>
+                    <div class="form-group">
+                        <label>Chunk Overlap</label>
+                        <input type="number" id="upload-chunk-overlap" value="128">
+                    </div>
+                </div>
+                <button onclick="uploadDocuments()">Upload & Process</button>
+                <div id="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div id="upload-progress-fill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <p id="upload-status" style="color: var(--text-secondary); font-size: 13px;"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ingest Tab -->
+        <div id="ingest" class="tab-content">
+            <div class="card">
+                <div class="card-title">Folder Ingestion</div>
+                <div id="ingest-alert"></div>
+                <div class="form-group">
+                    <label>Folder Path</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="ingest-path" value="/host_root"
+                            placeholder="/host_root" style="flex: 1;">
+                        <button onclick="scanFolder()" class="secondary" style="width: auto; white-space: nowrap;">🔍
+                            Scan</button>
+                    </div>
+                    <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
+                        💡 Path points to the mounted folder configured in .env (DOCS_DIR). Use /host_root or subdirectories like /host_root/subfolder
+                    </small>
+                </div>
+
+                <div id="scan-results" style="display: none; margin: 16px 0;">
+                    <div
+                        style="background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <strong style="color: var(--text-primary);">📁 Scan Results</strong>
+                            <span id="scan-file-count" style="color: var(--accent); font-weight: 600;">-</span>
+                        </div>
+                        <div id="scan-file-list"
+                            style="max-height: 200px; overflow-y: auto; font-size: 13px; color: var(--text-secondary);">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Collection Name</label>
+                        <input type="text" id="ingest-collection" placeholder="my_docs">
+                    </div>
+                    <div class="form-group">
+                        <label>Profile</label>
+                        <select id="ingest-profile">
+                            <option value="default">📦 All Formats (Documents + Code)</option>
+                            <option value="documents">📄 Documents Only (PDF, DOCX, XLSX, MD, TXT)</option>
+                            <option value="codebase">💻 Code Only (Python, JS, Java, Go, etc.)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="startIngestion()" style="flex: 1;">Start Ingestion</button>
+                </div>
+
+                <div id="ingest-progress" style="display: none; margin-top: 20px;">
+                    <div class="progress-bar">
+                        <div id="ingest-progress-fill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <p id="ingest-status" style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent Configuration Tab -->
+        <div id="mcp" class="tab-content">
+            <div class="card">
+                <div class="card-title">Agent Configuration</div>
+                <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
+                    Copy the MCP client snippet and share the connectivity details with your own MCP-capable agent.
+                </p>
+                <div class="form-group">
+                    <label>Agent MCP snippet</label>
+                    <div class="code-block">
+                        <pre id="mcp-cli-snippet">&lt;agent-cli&gt; mcp add --transport stdio knowledge-kit npx -y @knowledge-kit/mcp-server</pre>
+                        <button class="secondary" onclick="copyMcpSnippet()">Copy</button>
+                    </div>
+                    <small style="color: var(--text-secondary);">Replace `<agent-cli>` with your agent’s CLI name (OpenClaw, Smithery, etc.).</small>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">MCP Server Settings</div>
+                <div id="mcp-config-alert"></div>
+                <div class="form-group">
+                    <label>Knowledge Base API URL</label>
+                    <input type="url" id="mcp-api-url" placeholder="http://localhost:8080">
+                </div>
+                <div class="form-group">
+                    <label>API Timeout (ms)</label>
+                    <input type="number" id="mcp-timeout" value="120000" min="5000">
+                </div>
+                <div class="form-group">
+                    <label>Log Level</label>
+                    <select id="mcp-log-level">
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARN">WARN</option>
+                        <option value="ERROR">ERROR</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;">
+                    <button onclick="saveMcpConfig()">Save & Apply</button>
+                    <button class="secondary" onclick="testMcpConfig()">Test Connections</button>
+                </div>
+                <div id="mcp-test-results" style="margin-top: 16px;"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Community Edition • <a href="/docs" target="_blank">API Documentation</a> • <a
+                    href="https://github.com/2dogsandanerd/Knowledge-Base-Self-Hosting-Kit" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const API_URL = '/api/v1/rag';
+        let currentTaskId = null;
+        let pollInterval = null;
+        const CONFIG_ENDPOINT = '/api/v1/config';
+        const CONFIG_TEST_ENDPOINT = '/api/v1/config/test';
+        const MCP_SNIPPET = '<agent-cli> mcp add --transport stdio knowledge-kit npx -y @knowledge-kit/mcp-server';
+
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            // Load data when switching to certain tabs
+            if (tabName === 'dashboard') {
+                loadDashboard();
+                startLogPolling();
+            }
+            if (tabName === 'collections') loadCollections();
+            if (tabName === 'query' || tabName === 'search' || tabName === 'upload') loadCollectionsList();
+            if (tabName === 'mcp') loadMcpConfig();
+        }
+
+        // Live Log Polling
+        let logPollInterval = null;
+        function startLogPolling() {
+            if (logPollInterval) return;
+            updateLogFeed(); // Initial call
+            logPollInterval = setInterval(updateLogFeed, 2000);
+        }
+
+        async function updateLogFeed() {
+            const logsEl = document.getElementById('system-logs');
+            if (!logsEl || document.getElementById('dashboard').style.display === 'none') return;
+
+            try {
+                const res = await fetch(`${API_URL}/logs`);
+                const data = await res.json();
+
+                if (data.logs && data.logs.length > 0) {
+                    const html = data.logs.map(log => `
+                        <div class="log-entry">
+                            <span class="log-timestamp">[${log.timestamp}]</span>
+                            <span class="log-level-${log.level}">${log.level}</span>
+                            <span class="log-message">${escapeHtml(log.message)}</span>
+                        </div>
+                    `).join('');
+                    logsEl.innerHTML = html;
+
+                    // Update stats status from data if available
+                    if (data.status) {
+                        const statusEl = document.getElementById('stat-status');
+                        statusEl.innerHTML = data.status === 'Idle' ? '🟢' : '🚀';
+                        statusEl.title = data.status;
+                    }
+                }
+            } catch (error) {
+                console.error('Log polling error:', error);
+            }
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const healthRes = await fetch('/health');
+                const health = await healthRes.json();
+
+                const statusEl = document.getElementById('stat-status');
+                if (health.status === 'healthy') {
+                    statusEl.textContent = '✅';
+                    statusEl.title = "System Healthy";
+                } else if (health.status === 'degraded') {
+                    statusEl.textContent = '⚠️';
+                    statusEl.title = "ChromaDB Disconnected";
+                } else {
+                    statusEl.textContent = '❌';
+                    statusEl.title = health.error || "System Error";
+                }
+
+                document.getElementById('stat-collections').textContent = health.collections_count || 0;
+
+                const collectionsRes = await fetch(`${API_URL}/collections`);
+                const collectionsData = await collectionsRes.json();
+
+                let totalDocs = 0;
+                for (const col of collectionsData.collections || []) {
+                    try {
+                        const statsRes = await fetch(`${API_URL}/collections/${col.name}/stats`);
+                        const stats = await statsRes.json();
+                        totalDocs += stats.total_documents || 0;
+                    } catch (e) { }
+                }
+                document.getElementById('stat-documents').textContent = totalDocs;
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+                document.getElementById('stat-status').textContent = '❌';
+            }
+        }
+
+        // Collections
+        async function loadCollections() {
+            const listEl = document.getElementById('collections-list');
+            listEl.innerHTML = '<div class="spinner"></div>';
+
+            try {
+                const res = await fetch(`${API_URL}/collections`);
+                const data = await res.json();
+
+                if (!data.collections || data.collections.length === 0) {
+                    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>No collections yet. Create one to get started.</p></div>';
+                    return;
+                }
+
+                listEl.innerHTML = '<div class="collection-list"></div>';
+                const containerEl = listEl.querySelector('.collection-list');
+
+                for (const col of data.collections) {
+                    try {
+                        const statsRes = await fetch(`${API_URL}/collections/${col.name}/stats`);
+                        const stats = await statsRes.json();
+
+                        const item = document.createElement('div');
+                        item.className = 'collection-item';
+                        item.innerHTML = `
+                            <div class="collection-info">
+                                <h3>${col.name}</h3>
+                                <div class="collection-meta">${stats.total_documents || 0} documents</div>
+                            </div>
+                            <div class="collection-actions">
+                                <button class="btn-small" onclick="viewCollection('${col.name}')">View</button>
+                                <button class="btn-small btn-danger" onclick="deleteCollection('${col.name}')">Delete</button>
+                            </div>
+                        `;
+                        containerEl.appendChild(item);
+                    } catch (e) {
+                        console.error('Stats load error:', e);
+                    }
+                }
+            } catch (error) {
+                showAlert('collection-alert', 'Failed to load collections', 'error');
+            }
+        }
+
+        async function loadCollectionsList() {
+            const selects = ['query-collection', 'search-collection', 'upload-collection'];
+
+            try {
+                const res = await fetch(`${API_URL}/collections`);
+                const data = await res.json();
+
+                selects.forEach(id => {
+                    const select = document.getElementById(id);
+                    if (!select) return;
+
+                    if (!data.collections || data.collections.length === 0) {
+                        select.innerHTML = '<option value="">No collections available</option>';
+                    } else {
+                        select.innerHTML = data.collections.map(col =>
+                            `<option value="${col.name}">${col.name}</option>`
+                        ).join('');
+                    }
+                });
+            } catch (error) {
+                console.error('Load collections error:', error);
+            }
+        }
+
+        async function createCollection() {
+            const name = document.getElementById('new-collection-name').value.trim();
+            const embedding = document.getElementById('new-collection-embedding').value;
+
+            if (!name) {
+                showAlert('collection-alert', 'Please enter a collection name', 'error');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('collection_name', name);
+                formData.append('embedding_provider', 'ollama');
+                formData.append('embedding_model', embedding);
+
+                const res = await fetch(`${API_URL}/collections`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    showAlert('collection-alert', `Collection "${name}" created successfully!`, 'success');
+                    document.getElementById('new-collection-name').value = '';
+                    setTimeout(() => loadCollections(), 1000);
+                } else {
+                    const error = await res.json();
+                    showAlert('collection-alert', error.detail || 'Failed to create collection', 'error');
+                }
+            } catch (error) {
+                showAlert('collection-alert', 'Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function viewCollection(name) {
+            try {
+                // Fetch collection stats and documents
+                const [statsRes, docsRes] = await Promise.all([
+                    fetch(`${API_URL}/collections/${name}/stats`),
+                    fetch(`${API_URL}/collections/${name}/documents?limit=10`)
+                ]);
+
+                const stats = await statsRes.json();
+                const docsData = await docsRes.json();
+
+                // Build message with collection info
+                let message = `Collection: ${name}\n\n`;
+                message += `📊 Total Documents: ${stats.total_documents || 0}\n`;
+                message += `💾 Size: ${stats.size_mb || 0} MB\n`;
+                message += `🧠 Model: ${stats.embedding_model || 'unknown'}\n`;
+                message += `📐 Dimensions: ${stats.embedding_dimensions || 0}\n\n`;
+
+                if (docsData.documents && docsData.documents.length > 0) {
+                    message += `📄 Sample Documents (showing ${docsData.documents.length} of ${docsData.total}):\n\n`;
+                    docsData.documents.slice(0, 5).forEach((doc, i) => {
+                        const preview = doc.content?.substring(0, 100) || 'No content';
+                        message += `${i + 1}. ${doc.metadata?.source || doc.id}\n   ${preview}...\n\n`;
+                    });
+                } else {
+                    message += '📄 No documents yet in this collection.\n';
+                }
+
+                alert(message);
+            } catch (error) {
+                showAlert('collection-alert', `Failed to load details: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteCollection(name) {
+            if (!confirm(`Delete collection "${name}"? This cannot be undone.`)) return;
+
+            try {
+                const res = await fetch(`${API_URL}/collections/${name}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    showAlert('collection-alert', `Collection "${name}" deleted`, 'success');
+                    loadCollections();
+                } else {
+                    const error = await res.json();
+                    showAlert('collection-alert', error.detail || 'Failed to delete', 'error');
+                }
+            } catch (error) {
+                showAlert('collection-alert', 'Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Query
+        async function executeQuery() {
+            const collection = document.getElementById('query-collection').value;
+            const query = document.getElementById('query-input').value.trim();
+            const k = parseInt(document.getElementById('query-k').value);
+
+            if (!collection || !query) {
+                showAlert('query-alert', 'Please select a collection and enter a question', 'error');
+                return;
+            }
+
+            const resultsEl = document.getElementById('query-results');
+            resultsEl.innerHTML = '<div class="card"><div class="spinner"></div> Searching...</div>';
+
+            try {
+                const res = await fetch(`${API_URL}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, collections: [collection], k })
+                });
+
+                let data;
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    data = await res.json();
+                } else {
+                    const text = await res.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error(`Server returned non-JSON response (${res.status})`);
+                }
+
+                if (!res.ok) {
+                    showAlert('query-alert', data.detail || 'Query failed', 'error');
+                    resultsEl.innerHTML = '';
+                    return;
+                }
+
+                // Backend returns llm_response and context_chunks
+                const answer = data.llm_response || data.answer;
+                const sources = data.context_chunks || data.sources || [];
+
+                showAlert('query-alert', `Found ${sources.length} results`, 'success');
+
+                if (!answer && sources.length === 0) {
+                    resultsEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>No results found</p></div>';
+                    return;
+                }
+
+                let html = '';
+
+                if (answer) {
+                    html += `<div class="card">
+                        <div class="card-title">Answer</div>
+                        <div class="result-content">${escapeHtml(answer)}</div>
+                    </div>`;
+                }
+
+                if (sources.length > 0) {
+                    html += '<div class="card"><div class="card-title">Relevant Sources</div>';
+                    sources.forEach((source, i) => {
+                        html += `<div class="result-item">
+                            <div class="result-content">${escapeHtml(source.text || source.content || 'No content')}</div>
+                            <div class="result-meta">
+                                Source ${i + 1} •
+                                ${source.metadata?.source || source.source || 'Unknown'} •
+                                Score: ${(source.relevance_score || source.score || 0).toFixed(3)}
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+
+                resultsEl.innerHTML = html;
+            } catch (error) {
+                showAlert('query-alert', 'Network error: ' + error.message, 'error');
+                resultsEl.innerHTML = '';
+            }
+        }
+
+        // Search (without LLM)
+        async function executeSearch() {
+            const collection = document.getElementById('search-collection').value;
+            const query = document.getElementById('search-input').value.trim();
+            const k = parseInt(document.getElementById('search-k').value);
+
+            if (!collection || !query) {
+                showAlert('search-alert', 'Please select a collection and enter a search query', 'error');
+                return;
+            }
+
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.innerHTML = '<div class="card"><div class="spinner"></div> Searching documents...</div>';
+
+            try {
+                const res = await fetch(`${API_URL}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, collections: [collection], k })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert('search-alert', data.detail || 'Search failed', 'error');
+                    resultsEl.innerHTML = '';
+                    return;
+                }
+
+                const documents = data.documents || [];
+                const totalFound = data.total_found || 0;
+                const totalCandidates = data.total_candidates || 0;
+
+                showAlert('search-alert', `Found ${totalFound} documents from ${totalCandidates} candidates`, 'success');
+
+                if (documents.length === 0) {
+                    resultsEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>No documents found</p></div>';
+                    return;
+                }
+
+                let html = '<div class="card"><div class="card-title">Search Results</div>';
+                documents.forEach((doc, i) => {
+                    html += `<div class="result-item">
+                        <div class="result-content">${escapeHtml(doc.content || 'No content')}</div>
+                        <div class="result-meta">
+                            Result ${i + 1} •
+                            ${doc.metadata?.source || doc.source || 'Unknown'} •
+                            Score: ${(doc.relevance_score || 0).toFixed(3)} •
+                            Collection: ${doc.source_collection || collection}
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                resultsEl.innerHTML = html;
+            } catch (error) {
+                showAlert('search-alert', 'Network error: ' + error.message, 'error');
+                resultsEl.innerHTML = '';
+            }
+        }
+
+        // Upload
+        async function uploadDocuments() {
+            const collection = document.getElementById('upload-collection').value;
+            const files = document.getElementById('upload-files').files;
+            const chunkSize = document.getElementById('upload-chunk-size').value;
+            const chunkOverlap = document.getElementById('upload-chunk-overlap').value;
+
+            if (!collection || files.length === 0) {
+                showAlert('upload-alert', 'Please select a collection and files', 'error');
+                return;
+            }
+
+            const progressEl = document.getElementById('upload-progress');
+            const progressFill = document.getElementById('upload-progress-fill');
+            const statusEl = document.getElementById('upload-status');
+
+            progressEl.style.display = 'block';
+            progressFill.style.width = '0%';
+            statusEl.textContent = 'Uploading...';
+
+            try {
+                const formData = new FormData();
+                formData.append('collection_name', collection);
+                formData.append('chunk_size', chunkSize);
+                formData.append('chunk_overlap', chunkOverlap);
+
+                for (const file of files) {
+                    formData.append('files', file);
+                }
+
+                const res = await fetch(`${API_URL}/documents/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    progressFill.style.width = '100%';
+                    statusEl.textContent = 'Upload complete!';
+                    showAlert('upload-alert', `Successfully uploaded ${files.length} file(s)`, 'success');
+                    document.getElementById('upload-files').value = '';
+                    setTimeout(() => { progressEl.style.display = 'none'; }, 3000);
+                } else {
+                    const error = await res.json();
+                    showAlert('upload-alert', error.detail || 'Upload failed', 'error');
+                    progressEl.style.display = 'none';
+                }
+            } catch (error) {
+                showAlert('upload-alert', 'Network error: ' + error.message, 'error');
+                progressEl.style.display = 'none';
+            }
+        }
+
+        // Folder Scan
+        async function scanFolder() {
+            let path = document.getElementById('ingest-path').value.trim();
+
+            if (!path) {
+                showAlert('ingest-alert', 'Please enter a folder path', 'error');
+                return;
+            }
+
+            // Validate path starts with /host_root
+            if (!path.startsWith('/host_root')) {
+                showAlert('ingest-alert', 'Path must start with /host_root (the mounted folder from .env DOCS_DIR)', 'error');
+                return;
+            }
+
+            const scanResultsEl = document.getElementById('scan-results');
+            const fileCountEl = document.getElementById('scan-file-count');
+            const fileListEl = document.getElementById('scan-file-list');
+
+            scanResultsEl.style.display = 'block';
+            fileCountEl.innerHTML = '<span class="spinner"></span>';
+            fileListEl.textContent = 'Scanning...';
+
+            try {
+                const formData = new FormData();
+                formData.append('folder_path', path);
+                formData.append('recursive', 'true');
+
+                const res = await fetch(`${API_URL}/scan-folder`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert('ingest-alert', data.detail || 'Scan failed', 'error');
+                    scanResultsEl.style.display = 'none';
+                    return;
+                }
+
+                const fileCount = data.files?.length || 0;
+                fileCountEl.textContent = `${fileCount} files found`;
+
+                if (fileCount === 0) {
+                    fileListEl.innerHTML = '<div style="padding: 8px; text-align: center;">No supported files found</div>';
+                    showAlert('ingest-alert', 'No supported files found in this folder', 'error');
+                } else {
+                    fileListEl.innerHTML = data.files.slice(0, 50).map(file => {
+                        const fileName = file.filename || file.path?.split('/').pop() || 'unknown';
+                        const ext = file.extension || '';
+                        return `<div style="padding: 4px 8px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fileName}</span>
+                            <span style="color: var(--accent); font-size: 11px; text-transform: uppercase;">${ext.replace('.', '')}</span>
+                        </div>`;
+                    }).join('');
+
+                    if (fileCount > 50) {
+                        fileListEl.innerHTML += `<div style="padding: 8px; text-align: center; color: var(--accent);">+ ${fileCount - 50} more files...</div>`;
+                    }
+
+                    showAlert('ingest-alert', `✅ Found ${fileCount} files ready for ingestion`, 'success');
+                }
+            } catch (error) {
+                showAlert('ingest-alert', 'Network error: ' + error.message, 'error');
+                scanResultsEl.style.display = 'none';
+            }
+        }
+
+        // Ingestion
+        async function startIngestion() {
+            let path = document.getElementById('ingest-path').value.trim();
+            const collection = document.getElementById('ingest-collection').value.trim();
+            const profile = document.getElementById('ingest-profile').value;
+
+            if (!path || !collection) {
+                showAlert('ingest-alert', 'Please fill in all fields', 'error');
+                return;
+            }
+
+            // Validate path starts with /host_root
+            if (!path.startsWith('/host_root')) {
+                showAlert('ingest-alert', 'Path must start with /host_root (the mounted folder from .env DOCS_DIR)', 'error');
+                return;
+            }
+
+            const progressEl = document.getElementById('ingest-progress');
+            const progressFill = document.getElementById('ingest-progress-fill');
+            const statusEl = document.getElementById('ingest-status');
+
+            // Show progress UI immediately
+            progressEl.style.display = 'block';
+            progressFill.style.width = '5%';
+            statusEl.textContent = '🚀 Starting ingestion...';
+
+            console.log('📤 Sending ingestion request:', {
+                folder_path: path,
+                collection_name: collection,
+                profile: profile
+            });
+
+            try {
+                const res = await fetch(`${API_URL}/ingest-folder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folder_path: path,
+                        collection_name: collection,
+                        profile: profile,
+                        recursive: true
+                    })
+                });
+
+                const data = await res.json();
+                console.log('📥 Ingestion response:', data);
+
+                if (res.ok && data.task_id) {
+                    currentTaskId = data.task_id;
+                    statusEl.textContent = `📋 Task created: ${data.files_found} files found`;
+                    showAlert('ingest-alert', `Found ${data.files_found} files to process`, 'info');
+                    pollIngestionStatus();
+                } else {
+                    showAlert('ingest-alert', data.detail || 'Failed to start ingestion', 'error');
+                    progressEl.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('❌ Ingestion request failed:', error);
+                showAlert('ingest-alert', 'Network error: ' + error.message, 'error');
+                progressEl.style.display = 'none';
+            }
+        }
+
+        async function pollIngestionStatus() {
+            const progressFill = document.getElementById('ingest-progress-fill');
+            const statusEl = document.getElementById('ingest-status');
+
+            if (pollInterval) clearInterval(pollInterval);
+
+            console.log(`🔄 Starting to poll task: ${currentTaskId}`);
+            statusEl.textContent = '⏳ Initializing...';
+
+            pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_URL}/ingest-status/${currentTaskId}`);
+
+                    if (!res.ok) {
+                        console.error(`❌ Status check failed: ${res.status}`);
+                        statusEl.textContent = `⚠️ Status check failed (${res.status})`;
+                        return;
+                    }
+
+                    const data = await res.json();
+                    console.log(`📊 Status update:`, data);
+
+                    const processed = data.progress?.processed_files || 0;
+                    const total = data.progress?.total_files || 0;
+                    const progressPercent = total > 0 ? Math.round((processed / total) * 100) : 0;
+
+                    // Update progress bar
+                    progressFill.style.width = progressPercent + '%';
+
+                    if (data.status === 'pending') {
+                        statusEl.textContent = `⏳ Waiting to start... (${total} files queued)`;
+                    } else if (data.status === 'processing') {
+                        statusEl.textContent = `⚙️ Processing: ${processed}/${total} files (${progressPercent}%)`;
+                    } else if (data.status === 'success' || data.status === 'completed') {
+                        clearInterval(pollInterval);
+                        progressFill.style.width = '100%';
+                        const successful = data.progress?.successful_files || 0;
+                        const failed = data.progress?.failed_files || 0;
+                        const chunks = data.progress?.total_chunks || 0;
+                        statusEl.textContent = `✅ Complete! ${successful} files → ${chunks} chunks (${failed} failed)`;
+                        showAlert('ingest-alert', `Successfully processed ${successful} files (${chunks} chunks)`, 'success');
+                        setTimeout(() => loadDashboard(), 2000);
+                    } else if (data.status === 'failed') {
+                        clearInterval(pollInterval);
+                        statusEl.textContent = `❌ Failed: ${data.error_message || 'Unknown error'}`;
+                        showAlert('ingest-alert', `Ingestion failed: ${data.error_message || 'Unknown error'}`, 'error');
+                    } else if (data.status === 'partial') {
+                        clearInterval(pollInterval);
+                        progressFill.style.width = '100%';
+                        const successful = data.progress?.successful_files || 0;
+                        const failed = data.progress?.failed_files || 0;
+                        statusEl.textContent = `⚠️ Completed with ${failed} errors (${successful} successful)`;
+                        showAlert('ingest-alert', `Completed with ${failed} errors. ${successful} files processed successfully.`, 'warning');
+                    }
+                } catch (error) {
+                    console.error('❌ Polling error:', error);
+                    statusEl.textContent = `⚠️ Connection error: ${error.message}`;
+                }
+            }, 2000); // Poll every 2000ms (reduced from 500ms for efficiency)
+        }
+
+        async function loadMcpConfig() {
+            const alertId = 'mcp-config-alert';
+            const snippetEl = document.getElementById('mcp-cli-snippet');
+            if (snippetEl) snippetEl.textContent = MCP_SNIPPET;
+
+            try {
+                const res = await fetch(CONFIG_ENDPOINT);
+                if (!res.ok) throw new Error('Unable to load configuration');
+                const data = await res.json();
+                document.getElementById('mcp-api-url').value = data.KNOWLEDGE_BASE_API_URL || 'http://localhost:8080';
+                document.getElementById('mcp-timeout').value = data.KNOWLEDGE_BASE_TIMEOUT || '120000';
+                document.getElementById('mcp-log-level').value = data.LOG_LEVEL || 'INFO';
+            } catch (error) {
+                showAlert(alertId, 'Unable to load configuration: ' + error.message, 'error');
+            }
+        }
+
+        function buildMcpPayload() {
+            return {
+                KNOWLEDGE_BASE_API_URL: document.getElementById('mcp-api-url').value.trim() || 'http://localhost:8080',
+                KNOWLEDGE_BASE_TIMEOUT: document.getElementById('mcp-timeout').value.trim() || '120000',
+                LOG_LEVEL: document.getElementById('mcp-log-level').value || 'INFO'
+            };
+        }
+
+        async function saveMcpConfig() {
+            const alertId = 'mcp-config-alert';
+            const payload = buildMcpPayload();
+
+            try {
+                const res = await fetch(CONFIG_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed to save configuration');
+                showAlert(alertId, data.message || 'Configuration saved', 'success');
+                loadMcpConfig();
+            } catch (error) {
+                showAlert(alertId, 'Failed to save configuration: ' + error.message, 'error');
+            }
+        }
+
+        async function testMcpConfig() {
+            const alertId = 'mcp-config-alert';
+            const resultsEl = document.getElementById('mcp-test-results');
+            resultsEl.innerHTML = '<div class="card"><div class="spinner"></div> Testing connections...</div>';
+            const payload = buildMcpPayload();
+
+            try {
+                const res = await fetch(CONFIG_TEST_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Connection test failed');
+                renderMcpTestResults(data);
+                showAlert(alertId, 'Connection test completed', 'success');
+            } catch (error) {
+                resultsEl.innerHTML = '';
+                showAlert(alertId, 'Connection test failed: ' + error.message, 'error');
+            }
+        }
+
+        function renderMcpTestResults(results) {
+            const container = document.getElementById('mcp-test-results');
+            if (!container) return;
+
+            if (!Array.isArray(results) || results.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">ℹ️</div><p>No test results available</p></div>';
+                return;
+            }
+
+            container.innerHTML = results.map(result => `
+                <div class="result-item">
+                    <div class="result-content">
+                        <strong>${result.component}</strong> – ${result.success ? '✅' : '❌'} ${result.message}
+                    </div>
+                    <div class="result-meta">
+                        Duration: ${((result.duration || 0)).toFixed(2)}s
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function copyMcpSnippet() {
+            const alertId = 'mcp-config-alert';
+            const snippetEl = document.getElementById('mcp-cli-snippet');
+            const snippet = snippetEl?.textContent?.trim();
+
+            if (!snippet) {
+                showAlert(alertId, 'Snippet is not ready yet', 'error');
+                return;
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(snippet).then(() => {
+                    showAlert(alertId, 'Snippet copied to clipboard', 'success');
+                }).catch(() => {
+                    showAlert(alertId, 'Clipboard access denied', 'error');
+                });
+            } else {
+                showAlert(alertId, 'Clipboard API not available', 'error');
+            }
+        }
+
+        // Utilities
+        function showAlert(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="alert alert-${type}">${escapeHtml(message)}</div>`;
+            setTimeout(() => { el.innerHTML = ''; }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+        });
+    </script>
+</body>
+
+</html>
